@@ -59,7 +59,62 @@ class PoseDetector():
 
 
         return img, plm_list
-detector= PoseDetector()
+
+
+class HandDetector():
+    def __init__(self,static_image_mode=False,  #definit si image d'entrée est image statique ou video(flux)
+               max_num_hands=1,
+               model_complexity=1,        #complexité etablis le compromis entre vitrsse et précision 
+               min_detection_confidence=0.7,
+               min_tracking_confidence=0.6):
+               
+        self.static_mode=static_image_mode
+        self.max_hands=max_num_hands
+        self.m_complexity=model_complexity
+        self.m_d_conf=min_detection_confidence
+        self.m_t_conf=min_tracking_confidence
+
+        self.mp_draw_utils=mp.solutions.drawing_utils   # utile pour afficher les landmarks 
+        self.mp_hands=mp.solutions.hands 
+        self.hands=mp.solutions.hands.Hands(static_image_mode=self.static_mode,
+                                        model_complexity=self.m_complexity,
+                                        max_num_hands=self.max_hands,
+                                        min_detection_confidence=self.m_d_conf,
+                                        min_tracking_confidence=self.m_t_conf)
+
+
+    def find_pose(self,img,draw=True): 
+
+        """fonction  qui detecte la pose dans la video"""
+                                    
+        rgb_img=cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+        process=self.hands.process(rgb_img)
+        plm_list=[]         #poselandmarks
+        Hands=[]
+        h,w,c=img.shape
+        if process.multi_hand_landmarks:
+            
+            for hand_lms in process.multi_hand_landmarks:
+                hand={}
+                hlm_list=[]
+
+
+            for lm in hand_lms.landmark:
+                x,y,z = int(lm.x * w),int(lm.y*h), int(lm.z * w)     # on prend la position de landmark en pixel   (lm.x pourcentage of the width)
+                
+                plm_list.append([x,y,z])
+            hand['hlm_list']=hlm_list
+            Hands.append(hand)
+
+            if draw: 
+                            self.mp_draw_utils.draw_landmarks(img,hand_lms,self.mp_hands.HAND_CONNECTIONS)
+
+
+
+        return img, Hands        
+detector_pose= PoseDetector()
+detector_hand=HandDetector()
+
                 
 
                     
@@ -72,7 +127,8 @@ detector= PoseDetector()
 
 while True: 
     _,img=cap.read()
-    img,landmark_list=detector.find_pose(img,False)
+    img,landmark_list=detector_pose.find_pose(img,True)  #false stv cacher les landmarks 
+    img,landmark_list=detector_hand.find_pose(img,True)  #false stv cacher les landmarks 
     
     cv2.imshow("cam",img)
 
